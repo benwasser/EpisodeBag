@@ -5,7 +5,6 @@ var http = require('http');
 var lev = require('levenshtein');
 var app = express();
 var server = http.createServer(app);
-var lev = require('levenshtein');
 
 app.use(express.cookieParser());
 app.use(express.bodyParser());

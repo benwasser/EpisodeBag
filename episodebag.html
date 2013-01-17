@@ -69,13 +69,12 @@
 		<div class="main">
 			<h1><a href="/">Episode Bag</a></h1>
 			<input type="text" id="addshow" placeholder="Add show"/><br /><br />
-			<div id="insert">{htmlinsert}</div>
-			<div id="allshows">{allshowslist}</div>
 		</div>
 	</body>
 	<script type="text/javascript">
 		$(document).ready(function(){
-			usershowlist = [{defaultlist}];
+			var usershowlist = {usershows};
+			var allshows = {allshows};
 
 			function addshow(query){
 				$.ajax({type: 'POST', url: '/addshow',
@@ -85,7 +84,11 @@
 						if (data.status == 201){
 							usershowlist.push(data.sid);
 							alert(data.message);
-							$('#insert').html(JSON.stringify(data.listings));
+							//new message being passed:
+							//{status: 201, sid: sid, showname: showname, latest: latest, next: next, message: showname + ' added successfully'}
+
+							//old way:
+							//$('#insert').html(JSON.stringify(data.listings));
 							$('#addshow').val('');
 						} else if (data.status == 409){
 							alert(data.message);

@@ -8,6 +8,7 @@ var server = http.createServer(app);
 
 app.use(express.cookieParser());
 app.use(express.bodyParser());
+app.use('/static', express.static(__dirname + '/static'));
 server.listen(8082);
 
 var shows = [];
@@ -89,32 +90,8 @@ app.get('/', function (req, res) {
 	fs.readFile(__dirname + '/episodebag.html', function (err, data) {
 		if (!err){
 			var mainhtml = data.toString('ascii');
-			var listings = generatelistings(usershows);
-			var htmlinsert = '';
-			var allshowslist = getshowslist();
-
-			for (var i = 0; i < allshowslist.length; i++) {
-				allshowslist[i] = allshowslist[i][0] + ' : ' + allshowslist[i][1];
-			};
-			var allshowsinsert = '<h3>All shows</h3>' + allshowslist.join('<br />');
-
-			for (var i = 0; i < listings.yourshows.length; i++) {
-				listings.yourshows[i] = listings.yourshows[i][0] + ' : ' + listings.yourshows[i][1];
-			};
-
-			for (var i = 0; i < listings.lastweek.length; i++) {
-				listings.lastweek[i] = listings.lastweek[i][0] + ' : ' + listings.lastweek[i][1];
-			};
-			for (var i = 0; i < listings.nextweek.length; i++) {
-				listings.nextweek[i] = listings.nextweek[i][0] + ' : ' + listings.nextweek[i][1];
-			};
-
-			htmlinsert += '<h3>Your shows</h3>' + listings.yourshows.join('<br />');
-			htmlinsert += '<h3>Last week</h3>' + listings.lastweek.join('<br />');
-			htmlinsert += '<h3>Next week</h3>' + listings.nextweek.join('<br />');
-			mainhtml = mainhtml.replace('{allshowslist}', allshowsinsert);
-			mainhtml = mainhtml.replace('{htmlinsert}', htmlinsert);
-			mainhtml = mainhtml.replace('{defaultlist}', usershows.join(', '));
+			mainhtml = mainhtml.replace('{usershows}', JSON.stringify(usershows));
+			mainhtml = mainhtml.replace('{allshows}', JSON.stringify(getshowslist()));
 			res.send(mainhtml);
 		} else {
 			console.log('episodebag.html NOT found');
@@ -126,14 +103,14 @@ app.post('/addshow', function(req, res){
 	searchshow(req.body.showname, req.body.usershows, res, 14);
 });
 
-function addshow(sid, showname, usershows, res){
+function addshow(sid, showname, latest, next, usershows, res){
 	if (usershows === undefined || !Array.isArray(usershows) || usershows.length == 0){
 		usershows = defaultlist;
 	};
-	if (usershows.indexOf(sid) == -1){
-		usershows.push(sid);
+	if (usershows.indexOf(newshow.sid) == -1){
+		usershows.push(newshow.sid);
 		res.cookie('usershows', usershows, { maxAge: 90000000 });
-		res.send({status: 201, sid: sid, message: showname + ' added successfully', listings: generatelistings(usershows)});
+		res.send({status: 201, sid: sid, showname: showname, latest: latest, next: next, message: showname + ' added successfully'})
 	} else {
 		res.send({status: 409, message: showname + ' is already in your list of shows.'});
 	};
@@ -144,10 +121,10 @@ function searchshow(query, usershows, res, tolerance){
 	if (shows.length > 0){
 		match = stringmatch(query); //try to find match in existing list of shows
 	} else {
-		match = [-1, -1, -1];
+		match = [-1, -1, -1, -1, -1];
 	};
 	if (match[2] > tolerance){ //found in list of existing shows
-		addshow(match[1], match[0], usershows, res);
+		addshow(match[0], match[1], match[2], match[3], usershows, res);
 	} else if (match[2] <= tolerance && tolerance == 0){ //prevents it from going into an infinite loop
 		res.send({status: 500, message: 'Could not find show'});
 	} else { //looks up show via API
@@ -161,6 +138,9 @@ function searchshow(query, usershows, res, tolerance){
 					var tempnexttime = 0;
 					var templatesttime = 0;
 					var tempsid = -1;
+					var tempairtime = '';
+					var tempspecifictime = '';
+					var tempnodst = 0;
 					// parsing response:
 					for (var i = 0; i < body.length; i++) {
 						if (body[i].indexOf('Show Name@') != -1){
@@ -173,13 +153,19 @@ function searchshow(query, usershows, res, tolerance){
 							tempnexttime = Date.parse(body[i].substr(13).split('^')[2])
 						} else if (body[i].indexOf('Show ID@') != -1){
 							tempsid = +body[i].substr(13);
+						} else if (body[i].indexOf('Airtime@') != -1){
+							tempairtime = body[i].substr(8);
+						} else if (body[i].indexOf('RFC3339@') != -1){
+							tempspecifictime = body[i].substr(8);
+						} else if (body[i].indexOf('GMT+0 NODST@') != -1){
+							tempnodst = +body[i].substr(12);
 						};
 					};
 					//if it parsed somewhat correctly:
 					if (tempsid != -1){
 						for (var i = 0; i < shows.length; i++) {
 							if (shows[i].sid == tempsid){
-								addshow(tempsid, shows[i].name, usershows, res);
+								addshow(tempsid, shows[i].name, shows[i].latest, shows[i].next, usershows, res);
 							};
 						};
 						shows.push({
@@ -188,7 +174,10 @@ function searchshow(query, usershows, res, tolerance){
 							latest: templatest,
 							latesttime: templatesttime,
 							next: tempnext,
-							nexttime: tempnexttime
+							nexttime: tempnexttime,
+							airtime: tempairtime,
+							specifictime: tempspecifictime,
+							nodst: tempnodst
 						});
 						shows.sort(function(a,b){
 							if (a.name.indexOf('The ') == 0) a.name = a.name.substr(4);
@@ -197,7 +186,7 @@ function searchshow(query, usershows, res, tolerance){
 							if (a.name > b.name) return 1;
 							return 0;
 						});
-						addshow(tempsid, tempname, usershows, res);
+						addshow(tempsid, tempname, templatest, tempnext, usershows, res);
 						fs.writeFileSync(__dirname + '/episodebag.json', JSON.stringify(shows));
 						return;
 					} else { //try again with fault tolerance lowered
@@ -243,7 +232,7 @@ function stringmatch(tomatch){
 		return parseInt(b.score,10) - parseInt(a.score,10);
 	});
 	//console.log(tomatch + ' : ' + scores[0].name + ' - ' + scores[0].score);
-	return [scores[0].name, scores[0].sid, scores[0].score];
+	return [scores[0].sid, scores[0].name, scores[0].latest, scores[0].next, scores[0].score];
 };
 
 function generatelistings(usershows){
@@ -284,7 +273,7 @@ function generatelistings(usershows){
 function getshowslist(){
 	var showslist = [];
 	for (var i = 0; i < shows.length; i++) {
-		showslist.push([shows[i].name, shows[i].sid]);
+		showslist.push([shows[i].sid, shows[i].name, shows[i].latest, shows[i].next]);
 	};
 	return showslist;
 };

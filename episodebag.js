@@ -39,6 +39,9 @@ setInterval(function(){
 				var tempnexttime = 0;
 				var templatesttime = 0;
 				var tempsid = -1;
+				var tempairtime = '';
+				var tempspecifictime = '';
+				var tempnodst = 0;
 				for (var i = 0; i < body.length; i++) {
 					if (body[i].indexOf('Show Name@') != -1){
 						tempname = body[i].substr(10);
@@ -50,6 +53,12 @@ setInterval(function(){
 						tempnexttime = Date.parse(body[i].substr(13).split('^')[2])
 					} else if (body[i].indexOf('Show ID@') != -1){
 						tempsid = +body[i].substr(13);
+					} else if (body[i].indexOf('Airtime@') != -1){
+						tempairtime = body[i].substr(8);
+					} else if (body[i].indexOf('RFC3339@') != -1){
+						tempspecifictime = body[i].substr(8);
+					} else if (body[i].indexOf('GMT+0 NODST@') != -1){
+						tempnodst = +body[i].substr(12);
 					};
 				};
 				if (tempsid != -1){
@@ -59,7 +68,10 @@ setInterval(function(){
 							shows[i].latest = templatest;
 							shows[i].latesttime = templatesttime;
 							shows[i].next = tempnext;
-							shows[i].nexttime = tempnexttime
+							shows[i].nexttime = tempnexttime;
+							shows[i].airtime = tempairtime;
+							shows[i].specifictime = tempspecifictime;
+							shows[i].nodst = tempnodst;
 						};
 					};
 				} else {
@@ -107,8 +119,8 @@ function addshow(sid, showname, latest, next, usershows, res){
 	if (usershows === undefined || !Array.isArray(usershows) || usershows.length == 0){
 		usershows = defaultlist;
 	};
-	if (usershows.indexOf(newshow.sid) == -1){
-		usershows.push(newshow.sid);
+	if (usershows.indexOf(sid) == -1){
+		usershows.push(sid);
 		res.cookie('usershows', usershows, { maxAge: 90000000 });
 		res.send({status: 201, sid: sid, showname: showname, latest: latest, next: next, message: showname + ' added successfully'})
 	} else {

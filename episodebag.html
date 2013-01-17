@@ -84,7 +84,7 @@
 						if (data.status == 201){
 							usershowlist.push(data.sid);
 							alert(data.message);
-							$('#insert').html(data.listings);
+							$('#insert').html(JSON.stringify(data.listings));
 							$('#addshow').val('');
 						} else if (data.status == 409){
 							alert(data.message);

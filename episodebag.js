@@ -89,7 +89,26 @@ app.get('/', function (req, res) {
 	fs.readFile(__dirname + '/episodebag.html', function (err, data) {
 		if (!err){
 			var mainhtml = data.toString('ascii');
-			mainhtml = mainhtml.replace('{htmlinsert}', generatelistings(usershows));
+			var listings = generatelistings(usershows);
+			var allshowslist = getshowslist();
+			var htmlinsert = '';
+			for (var i = 0; i < listings.yourshows.length; i++) {
+				listings.yourshows[i] = listings.yourshows[i][0] + ' : ' + listings.yourshows[i][1];
+			};
+			for (var i = 0; i < allshowslist.length; i++) {
+				allshowslist[i] = allshowslist[i][0] + ' : ' + allshowslist[i][1];
+			};
+			for (var i = 0; i < listings.lastweek.length; i++) {
+				listings.lastweek[i] = listings.lastweek[i][0] + ' : ' + listings.lastweek[i][1];
+			};
+			for (var i = 0; i < listings.nextweek.length; i++) {
+				listings.nextweek[i] = listings.nextweek[i][0] + ' : ' + listings.nextweek[i][1];
+			};
+			htmlinsert += '<h3>Your shows</h3>' + listings.yourshows.join('<br />');
+			htmlinsert += '<h3>All shows</h3>' + allshowslist.join('<br />');
+			htmlinsert += '<h3>Last week</h3>' + listings.lastweek.join('<br />');
+			htmlinsert += '<h3>Next week</h3>' + listings.nextweek.join('<br />');
+			mainhtml = mainhtml.replace('{htmlinsert}', htmlinsert);
 			mainhtml = mainhtml.replace('{defaultlist}', usershows.join(', '));
 			res.send(mainhtml);
 		} else {
@@ -223,22 +242,21 @@ function stringmatch(tomatch){
 };
 
 function generatelistings(usershows){
-	var htmlinsert = '';
 	var lastweek = [];
 	var nextweek = [];
-	var showslist = [];
+	//var showslist = [];
 	var yourshows = [];
 	for (var i = 0; i < shows.length; i++) {
 		if (usershows.indexOf(shows[i].sid) != -1){
-			yourshows.push(shows[i].name + ' ' + shows[i].sid);
+			yourshows.push([shows[i].name, shows[i].sid]);
 			if (shows[i].latesttime >= (new Date().getTime() - 604800000)){
 				lastweek.push(shows[i]);
 			};
-			if (shows[i].nexttime <= (new Date().getTime() + 604800000) && shows[i].nexttime > (new Date().getTime() - 86400000){
+			if (shows[i].nexttime <= (new Date().getTime() + 604800000) && shows[i].nexttime > (new Date().getTime() - 86400000)){
 				nextweek.push(shows[i]);
 			};
 		};
-		showslist.push(shows[i].name + ' ' + shows[i].sid);
+		//showslist.push([shows[i].name, shows[i].sid]);
 	};
 	lastweek.sort(function(a,b) {
 		return parseInt(a.latesttime,10) - parseInt(b.latesttime,10);
@@ -247,14 +265,23 @@ function generatelistings(usershows){
 		return parseInt(a.nexttime,10) - parseInt(b.nexttime,10);
 	});
 	for (var i = 0; i < lastweek.length; i++) {
-		lastweek[i] = lastweek[i].name + ': ' + lastweek[i].latest;
+		lastweek[i] = [lastweek[i].name, lastweek[i].latest];
 	};
 	for (var i = 0; i < nextweek.length; i++) {
-		nextweek[i] = nextweek[i].name + ': ' + nextweek[i].next;
+		nextweek[i] = [nextweek[i].name, nextweek[i].next];
 	};
-	htmlinsert += '<h3>Your shows</h3>' + yourshows.join('<br />');
-	htmlinsert += '<h3>All shows</h3>' + showslist.join('<br />');
-	htmlinsert += '<h3>Last week</h3>' + lastweek.join('<br />');
-	htmlinsert += '<h3>Next week</h3>' + nextweek.join('<br />');
-	return htmlinsert;
+	var returnobject = {
+		yourshows: yourshows,
+		lastweek: lastweek,
+		nextweek: nextweek
+	};
+	return returnobject;
+};
+
+function getshowslist(){
+	var showslist = [];
+	for (var i = 0; i < shows.length; i++) {
+		showslist.push([shows[i].name, shows[i].sid]);
+	};
+	return showslist;
 };

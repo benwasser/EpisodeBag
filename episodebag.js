@@ -115,14 +115,16 @@ app.post('/addshow', function(req, res){
 	searchshow(req.body.showname, req.body.usershows, res, 14);
 });
 
-function addshow(sid, showname, latest, next, usershows, res){
+//marker to update
+function addshow(sid, showname, latest, next, nodst, usershows, res){
 	if (usershows === undefined || !Array.isArray(usershows) || usershows.length == 0){
 		usershows = defaultlist;
 	};
 	if (usershows.indexOf(sid) == -1){
 		usershows.push(sid);
 		res.cookie('usershows', usershows, { maxAge: 90000000 });
-		res.send({status: 201, sid: sid, showname: showname, latest: latest, next: next, message: showname + ' added successfully'})
+		//marker to update
+		res.send({status: 201, sid: sid, showname: showname, latest: latest, next: next, nodst: nodst, message: showname + ' added successfully'})
 	} else {
 		res.send({status: 409, message: showname + ' is already in your list of shows.'});
 	};
@@ -133,10 +135,10 @@ function searchshow(query, usershows, res, tolerance){
 	if (shows.length > 0){
 		match = stringmatch(query); //try to find match in existing list of shows
 	} else {
-		match = [-1, -1, -1, -1, -1];
+		match = [-1, -1, -1, -1, -1, -1];
 	};
 	if (match[2] > tolerance){ //found in list of existing shows
-		addshow(match[0], match[1], match[2], match[3], usershows, res);
+		addshow(match[0], match[1], match[2], match[3], match[4], usershows, res);
 	} else if (match[2] <= tolerance && tolerance == 0){ //prevents it from going into an infinite loop
 		res.send({status: 500, message: 'Could not find show'});
 	} else { //looks up show via API
@@ -177,7 +179,8 @@ function searchshow(query, usershows, res, tolerance){
 					if (tempsid != -1){
 						for (var i = 0; i < shows.length; i++) {
 							if (shows[i].sid == tempsid){
-								addshow(tempsid, shows[i].name, shows[i].latest, shows[i].next, usershows, res);
+								//marker to update
+								addshow(tempsid, shows[i].name, shows[i].latest, shows[i].next, shows[i].nodst, usershows, res);
 							};
 						};
 						shows.push({
@@ -198,7 +201,8 @@ function searchshow(query, usershows, res, tolerance){
 							if (a.name > b.name) return 1;
 							return 0;
 						});
-						addshow(tempsid, tempname, templatest, tempnext, usershows, res);
+						//marker to update
+						addshow(tempsid, tempname, templatest, tempnext, tempnodst, usershows, res);
 						fs.writeFileSync(__dirname + '/episodebag.json', JSON.stringify(shows));
 						return;
 					} else { //try again with fault tolerance lowered
@@ -244,7 +248,8 @@ function stringmatch(tomatch){
 		return parseInt(b.score,10) - parseInt(a.score,10);
 	});
 	//console.log(tomatch + ' : ' + scores[0].name + ' - ' + scores[0].score);
-	return [scores[0].sid, scores[0].name, scores[0].latest, scores[0].next, scores[0].score];
+	//marker to update
+	return [scores[0].sid, scores[0].name, scores[0].latest, scores[0].next, scores[0].nodst, scores[0].score];
 };
 
 function generatelistings(usershows){
@@ -285,7 +290,8 @@ function generatelistings(usershows){
 function getshowslist(){
 	var showslist = [];
 	for (var i = 0; i < shows.length; i++) {
-		showslist.push([shows[i].sid, shows[i].name, shows[i].latest, shows[i].next]);
+		//marker to update
+		showslist.push([shows[i].sid, shows[i].name, shows[i].latest, shows[i].next, shows[i].nodst]);
 	};
 	return showslist;
 };

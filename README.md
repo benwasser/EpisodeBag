@@ -3,7 +3,7 @@
 
 **Features:**
 * Choose which shows to follow, see recent/upcoming episodes
-* Unreliable TVRage API
+* Uses the unreliable TVRage API
 * Fuzzy proper noun matching for finding shows already in the system (and sometimes for discovering completely unrelated shows)
 
 **Installation:**

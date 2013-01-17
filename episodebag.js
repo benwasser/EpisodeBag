@@ -99,7 +99,6 @@ app.get('/', function (req, res) {
 });
 
 app.post('/addshow', function(req, res){
-	console.log(req.body.showname, req.body.usershows);
 	searchshow(req.body.showname, req.body.usershows, res, 14);
 });
 
@@ -109,12 +108,11 @@ function addshow(sid, showname, usershows, res){
 	};
 	if (usershows.indexOf(sid) == -1){
 		usershows.push(sid);
-		var message = '^#-- ' + sid + ' ^$-- Added ' + showname + ' successfully<br /><br />' + generatelistings(usershows);
+		res.cookie('usershows', usershows, { maxAge: 90000000 });
+		res.send({status: 201, sid: sid, message: showname + ' added successfully', listings: generatelistings(usershows)});
 	} else {
-		var message = '^#-- -1 ^$-- ' + showname + ' is already in your list of shows.<br /><br />' + generatelistings(usershows);
+		res.send({status: 409, message: showname + ' is already in your list of shows.'});
 	};
-	res.cookie('usershows', usershows, { maxAge: 90000000 });
-	res.send(message);
 };
 
 function searchshow(query, usershows, res, tolerance){
@@ -175,12 +173,14 @@ function searchshow(query, usershows, res, tolerance){
 						fs.writeFileSync(__dirname + '/episodebag.json', JSON.stringify(shows));
 						return;
 					} else {
+						//TODO change this so it doesn't leave the possibility for an infinite loop
 						searchshow(query, usershows, res, 0);
 					}
 				} else {
-					res.send('Could not find show');
+					res.send({status: 500, message: 'Could not find show'});
 				}
 			} else {
+				//TODO change this so it doesn't leave the possibility for an infinite loop
 				searchshow(query, usershows, res, 0);
 			};
 		});
@@ -217,7 +217,7 @@ function stringmatch(tomatch){
 		return parseInt(b.score,10) - parseInt(a.score,10);
 	});
 
-	console.log(tomatch + ' : ' + scores[0].name + ' - ' + scores[0].score);
+	//console.log(tomatch + ' : ' + scores[0].name + ' - ' + scores[0].score);
 	return [scores[0].name, scores[0].sid, scores[0].score];
 };
 
@@ -233,7 +233,7 @@ function generatelistings(usershows){
 			if (shows[i].latesttime >= (new Date().getTime() - 604800000)){
 				lastweek.push(shows[i]);
 			};
-			if (shows[i].nexttime <= (new Date().getTime() + 604800000) && shows[i].nexttime > new Date().getTime()){
+			if (shows[i].nexttime <= (new Date().getTime() + 604800000) && shows[i].nexttime > (new Date().getTime() - 86400000){
 				nextweek.push(shows[i]);
 			};
 		};

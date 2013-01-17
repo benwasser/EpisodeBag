@@ -81,15 +81,15 @@
 					data: JSON.stringify({showname: query, usershows: usershowlist}),
 					contentType: 'application/json',
 					success: function(data) {
-						if (data.indexOf('^#-- ') == 0){
-							newsid = +data.substr(5, data.indexOf('^$-- ') - 5);
-							if (newsid != -1){
-								usershowlist.push(newsid);
-							};
-							$('#insert').html(data.substr(data.indexOf('^$-- ') + 5));
+						if (data.status == 201){
+							usershowlist.push(data.sid);
+							alert(data.message);
+							$('#insert').html(data.listings);
 							$('#addshow').val('');
-						} else {
-							alert(data);
+						} else if (data.status == 409){
+							alert(data.message);
+						} else if (data.status == 500){
+							alert(data.message);
 						};
 					}
 				});

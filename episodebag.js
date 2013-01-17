@@ -11,7 +11,7 @@ app.use(express.bodyParser());
 server.listen(8082);
 
 var shows = [];
-var defaultlist = [];
+var defaultlist = []; //eventually put some common shows in this
 
 fs.readFile(__dirname + '/episodebag.json', function (err, data) {
 	if (!err){
@@ -21,7 +21,7 @@ fs.readFile(__dirname + '/episodebag.json', function (err, data) {
 	};
 });
 
-setInterval(function(){
+setInterval(function(){ //hourly db update just in case
 	fs.writeFileSync(__dirname + '/episodebag.json', JSON.stringify(shows));
 }, 3600000);
 
@@ -118,13 +118,15 @@ function addshow(sid, showname, usershows, res){
 function searchshow(query, usershows, res, tolerance){
 	var match;
 	if (shows.length > 0){
-		match = stringmatch(query);
+		match = stringmatch(query); //try to find match in existing list of shows
 	} else {
 		match = [-1, -1, -1];
-	}
-	if (match[2] > tolerance){
+	};
+	if (match[2] > tolerance){ //found in list of existing shows
 		addshow(match[1], match[0], usershows, res);
-	} else {
+	} else if (match[2] <= tolerance && tolerance == 0){ //prevents it from going into an infinite loop
+		res.send({status: 500, message: 'Could not find show'});
+	} else { //looks up show via API
 		request('http://services.tvrage.com/tools/quickinfo.php?show=' + encodeURIComponent(query), function (error, response, body) {
 			if (!error && response.statusCode == 200) {
 				if (body.indexOf('Show Name@') != -1){
@@ -135,6 +137,7 @@ function searchshow(query, usershows, res, tolerance){
 					var tempnexttime = 0;
 					var templatesttime = 0;
 					var tempsid = -1;
+					// parsing response:
 					for (var i = 0; i < body.length; i++) {
 						if (body[i].indexOf('Show Name@') != -1){
 							tempname = body[i].substr(10);
@@ -148,6 +151,7 @@ function searchshow(query, usershows, res, tolerance){
 							tempsid = +body[i].substr(13);
 						};
 					};
+					//if it parsed somewhat correctly:
 					if (tempsid != -1){
 						for (var i = 0; i < shows.length; i++) {
 							if (shows[i].sid == tempsid){
@@ -172,15 +176,13 @@ function searchshow(query, usershows, res, tolerance){
 						addshow(tempsid, tempname, usershows, res);
 						fs.writeFileSync(__dirname + '/episodebag.json', JSON.stringify(shows));
 						return;
-					} else {
-						//TODO change this so it doesn't leave the possibility for an infinite loop
+					} else { //try again with fault tolerance lowered
 						searchshow(query, usershows, res, 0);
 					}
-				} else {
+				} else { // something screwy with API response, maybe switch this try again with lowered tolerance
 					res.send({status: 500, message: 'Could not find show'});
 				}
-			} else {
-				//TODO change this so it doesn't leave the possibility for an infinite loop
+			} else { //try again with fault tolerance lowered
 				searchshow(query, usershows, res, 0);
 			};
 		});
@@ -216,7 +218,6 @@ function stringmatch(tomatch){
 	scores.sort(function(a,b) {
 		return parseInt(b.score,10) - parseInt(a.score,10);
 	});
-
 	//console.log(tomatch + ' : ' + scores[0].name + ' - ' + scores[0].score);
 	return [scores[0].name, scores[0].sid, scores[0].score];
 };

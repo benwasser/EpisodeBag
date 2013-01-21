@@ -112,7 +112,36 @@ app.get('/', function (req, res) {
 });
 
 app.post('/addshow', function(req, res){
-	searchshow(req.body.showname, req.body.usershows, res, 14);
+	if (req.body.showname && req.body.usershows){
+		searchshow(req.body.showname, req.body.usershows, res, 14);
+	};
+});
+
+app.post('/add', function(req, res){
+	if (req.body.sid && req.body.usershows && req.body.sid > 1){
+		var usershows = req.body.usershows;
+		if (Array.isArray(usershows) && shows.indexOf(req.body.sid) != -1 && usershows.indexOf(req.body.sid) == -1){
+			usershows.push(req.body.sid);
+			res.cookie('usershows', usershows, { maxAge: 90000000 });
+			res.send({status: 201, sid: req.body.sid, usershows: usershows});
+		};
+	};
+});
+
+app.post('/remove', function(req, res){
+	if (req.body.sid && req.body.usershows && req.body.sid > 1){
+		var usershows = req.body.usershows;
+		if (Array.isArray(usershows) && usershows.indexOf(req.body.sid) != -1){
+			for (var i = 0; i < usershows.length; i++) {
+				if (usershows[i] == req.body.sid){
+					usershows.splice(i, 1);
+					i--;
+				};
+			};
+			res.cookie('usershows', usershows, { maxAge: 90000000 });
+			res.send({status: 201, sid: req.body.sid, usershows: usershows});
+		};
+	};
 });
 
 //marker to update

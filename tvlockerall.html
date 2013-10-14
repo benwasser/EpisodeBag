@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<meta name="Description" content="TVLocker">
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+		<link href='http://fonts.googleapis.com/css?family=Muli' rel='stylesheet' type='text/css'>
+
+		<title>TVLocker</title>
+		<style>
+			body {
+				font-family: 'Muli';
+				font-size: 18px;
+				overflow: scroll;
+				background: #fff;
+				color:#000;
+				padding: 10px;
+				padding-top:0px;
+			}
+			h1 {
+				font-size: 55px;
+				margin: 0px;
+				padding: 0px;
+				display:inline;
+			}
+			h2 {
+				padding-top: 30px;
+				clear: both;
+			}
+			input {
+				font-family: 'Muli';
+				height:25px;
+				width:217px;
+				font-size: 18px;
+				padding-left: 5px;
+				margin-left: 116px;
+				margin-right: 5px;
+			}
+			a:link {color:#000;}      /* unvisited link */
+			a:visited {color:#333;}  /* visited link */
+			a:hover {color:#555;}  /* mouse over link */
+			a:active {color:#000;}  /* selected link */
+
+			#container {
+				margin-right: auto;
+				margin-left: auto;
+				width:100%;
+				margin-top: -30px;
+				padding: 0px;
+			}
+			.showcontainer {
+				position: relative;
+				width:300px;
+				height:190px;
+				max-width: 20%;
+				min-width: 115px;
+				overflow: hidden;
+				float:left;
+			}
+			.small {
+				font-size: 14px;
+			}
+			.showinfo {
+				position:absolute;
+				right:0px;
+				bottom:0px;
+				color:#000;
+				text-align: right;
+				letter-spacing: -1px;
+				background: rgb(255, 255, 255); /* fallback color */
+				background: rgba(255, 255, 255, 0.9);
+				padding: 10px;
+			}
+			.removeshow {
+				vertical-align: 10%;
+				text-decoration: none;
+				font-size: 10px;
+			}
+			.removeshow:hover {
+				color: red;
+				cursor: hand;
+				cursor: pointer;
+			}
+
+		</style>
+	</head>
+	<body>
+		<img src="https://dl.dropboxusercontent.com/u/13732/diamondlight2.png" style="width:100px;max-width:25%;position:relative;top:21px;">
+		<h1>TVLocker</h1><br /><br />
+		<a href="/"><< Back to your shows<a/><br />
+		Click the plus (⨁) next to the show's name to add it to your own list
+		<div id="container">
+			{showdata}
+		</div>
+	</body>
+	<script type="text/javascript">
+		$(document).ready(function(){
+
+			var usershows = {usershows};
+			//$("body").html($("body").html().replace(/ⓧ/g,'⨁'));
+	$("span").each(function() {
+		var text = $(this).text();
+		text = text.replace(/ⓧ/g,'⨁');
+		if (text.indexOf('⨁') != -1) $(this).css({
+			'font-size' : '16px',
+		})
+		$(this).text(text);
+	});
+
+			$('#container').on('click', '.removeshow', function() {
+				var sid = this.id;
+				$.ajax({type: 'POST', url: '/confirmadd',
+					data: JSON.stringify({showname: 'show', usershows: usershows, sid: sid}),
+					contentType: 'application/json',
+					success: function(data2) {
+						if (data2.status == 201){
+							//alert(data2.showname + ' added to your page');
+							window.location = '/';
+						} else {
+							alert(data2.error);
+						}
+					}
+				});
+			});
+
+		});
+	</script>
+</html>
